@@ -44,7 +44,7 @@ static void print_instructions()
 	puts
 	(
 		"Dumps a sound bank (or a list of sound banks) from a GBA game which is using the Sappy sound engine to SoundFont 2.0 (.sf2) format.\n"
-		"Usage: sound_font_riper [options] in.gba out.sf2 address1 [address2] ...\n"
+		"Usage: sound_font_riper [options] in.gba out.sf2 psg_data.raw goldensun_synth.raw address1 [address2] ...\n"
 		"addresses will correspond to instrument banks in increasing order...\n"
 		"Available options :\n"
 		"-v  : Verbose; display info about the sound font in text format. If -v is followed by a file name, info is output to the specified file instead.\n"
@@ -450,6 +450,8 @@ static void parse_arguments(const int argc, char *const argv[])
 	if (argc == 0) print_instructions();
 	bool infile_found = false;
 	bool outfile_found = false;
+	bool psg_data_found = false;
+	bool goldensun_synth_found = false;
 
 	for (int i = 0; i<argc; i++)
 	{
@@ -535,6 +537,20 @@ static void parse_arguments(const int argc, char *const argv[])
 			if (buffer != argv[i])
 				delete[] buffer;
 		}
+		else if (!psg_data_found) {
+			// Parse the psg data path
+			psg_data_found = true;
+			psg_data = fopen(argv[i], "rb");
+			if (!psg_data)
+				puts("psg_data.raw file not found! PSG Instruments can't be dumped.");
+
+		}
+		else if (!goldensun_synth_found) {
+			goldensun_synth_found = true;
+			goldensun_synth = fopen(argv[i], "rb");
+			if (!goldensun_synth)
+				puts("goldensun_synth.raw file not found! Golden Sun's synth instruments can't be dumped.");
+		}
 		else
 		{
 			uint32_t address = strtoul(argv[i], 0, 0);
@@ -574,16 +590,6 @@ int main(const int argc, char *const argv[])
 	// Create SF2 class
 	sf2 = new SF2(sample_rate);
 	instruments = new GBAInstr(sf2);
-
-	// Attempt to access psg_data file
-	psg_data = fopen((prg_prefix + "psg_data.raw").c_str(), "rb");
-	if (!psg_data)
-		puts("psg_data.raw file not found! PSG Instruments can't be dumped.");
-
-	// Attempt to access goldensun_synth file
-	goldensun_synth = fopen((prg_prefix + "goldensun_synth.raw").c_str(), "rb");
-	if (!goldensun_synth)
-		puts("goldensun_synth.raw file not found! Golden Sun's synth instruments can't be dumped.");
 
 	// Read instrument data from input GBA file
 	inst_data *instr_data = new inst_data[128];
